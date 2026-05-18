@@ -281,6 +281,54 @@
 </head>
 <body>
 
+<!-- ── PASSWORD GATE ── -->
+<div id="pwd-gate" style="
+  position:fixed;inset:0;z-index:9999;
+  background:linear-gradient(135deg,#07111F 0%,#0B1D3A 60%,#0E2040 100%);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'DM Sans',sans-serif;">
+  <div style="
+    background:#122444;border:1px solid #1E3560;border-radius:16px;
+    padding:48px 40px;width:100%;max-width:380px;text-align:center;
+    box-shadow:0 24px 64px rgba(0,0,0,.5);">
+    <div style="
+      width:56px;height:56px;border-radius:12px;margin:0 auto 20px;
+      background:linear-gradient(135deg,#E8501A,#FF6B35);
+      display:flex;align-items:center;justify-content:center;
+      font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:#fff;
+      box-shadow:0 0 24px rgba(232,80,26,.4);">M</div>
+    <h2 style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;
+      color:#E8EEF7;margin-bottom:6px;letter-spacing:-.2px;">NPS Dashboard</h2>
+    <p style="font-size:12px;color:#6B8AAF;margin-bottom:28px;">Pós-Médica · Mai/2026</p>
+    <input id="pwd-input" type="password" placeholder="Senha de acesso"
+      style="
+        width:100%;padding:12px 16px;border-radius:8px;
+        background:#0E1F35;border:1px solid #1E3560;
+        color:#E8EEF7;font-size:14px;font-family:'DM Sans',sans-serif;
+        outline:none;box-sizing:border-box;margin-bottom:12px;
+        transition:border-color .2s;"
+      onfocus="this.style.borderColor='#E8501A'"
+      onblur="this.style.borderColor='#1E3560'">
+    <button onclick="checkPwd()" style="
+      width:100%;padding:12px;border-radius:8px;border:none;cursor:pointer;
+      background:linear-gradient(90deg,#E8501A,#FF6B35);
+      color:#fff;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;
+      letter-spacing:.5px;text-transform:uppercase;
+      box-shadow:0 4px 16px rgba(232,80,26,.35);transition:opacity .2s;"
+      onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+      Entrar
+    </button>
+    <p id="pwd-err" style="
+      font-size:12px;color:#E8501A;margin-top:12px;
+      opacity:0;transition:opacity .3s;">
+      Senha incorreta. Tente novamente.
+    </p>
+  </div>
+</div>
+
+<!-- ── APP ── -->
+<div id="app" style="display:none">
+
 <header>
   <div class="header-brand">
     <div class="mandic-logo">M</div>
@@ -741,8 +789,44 @@ function renderAll() {
 // ══════════════════════════════════════════════════════════
 //  INIT
 // ══════════════════════════════════════════════════════════
-renderUnitCards();
-renderAll();
+(function() {
+  const HASH = '98423396c4dd1f711da7c862161bdd2c75505a6afdadb533236e1c92f3484375';
+  function sha256hex(str) {
+    const buf = new TextEncoder().encode(str);
+    return crypto.subtle.digest('SHA-256', buf).then(h =>
+      Array.from(new Uint8Array(h)).map(b => b.toString(16).padStart(2,'0')).join('')
+    );
+  }
+  function unlock() {
+    document.getElementById('pwd-gate').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    renderUnitCards();
+    renderAll();
+  }
+  window.checkPwd = async function() {
+    const val = document.getElementById('pwd-input').value;
+    const h = await sha256hex(val);
+    if (h === HASH) {
+      sessionStorage.setItem('nps_auth', '1');
+      unlock();
+    } else {
+      const err = document.getElementById('pwd-err');
+      err.style.opacity = '1';
+      document.getElementById('pwd-input').value = '';
+      document.getElementById('pwd-input').focus();
+      setTimeout(() => { err.style.opacity = '0'; }, 2500);
+    }
+  };
+  window.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('pwd-input').addEventListener('keydown', e => {
+      if (e.key === 'Enter') window.checkPwd();
+    });
+    if (sessionStorage.getItem('nps_auth') === '1') {
+      unlock();
+    }
+  });
+})();
 </script>
+</div><!-- /#app -->
 </body>
 </html>
